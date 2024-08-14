@@ -1,5 +1,6 @@
 package com.example.atvcampominado;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -55,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
 
         StringBuilder str_matriz = new StringBuilder();
 
-
         int[][] matriz_ = new int[num][num];
         int[][] matriz2 = new int[num][num];
 
@@ -71,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-
         int soma = 0;
         for(int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
@@ -109,13 +108,15 @@ public class MainActivity extends AppCompatActivity {
                     str_matriz.append(" ");
                 }
                 str_matriz.append(matriz2[i][j]);
-
             }
             str_matriz.append("\n");
         }
-
         matriz.setText(str_matriz.toString());
+    }
 
+    public void entrarNoJogo(@NonNull View view){
+        Intent intent = new Intent(MainActivity.this, JogoCampoMinado.class);
+        startActivity(intent);
     }
 
 }
