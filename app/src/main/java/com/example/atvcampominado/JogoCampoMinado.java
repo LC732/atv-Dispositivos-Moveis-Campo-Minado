@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -23,8 +24,15 @@ import java.util.Random;
 
 public class JogoCampoMinado extends AppCompatActivity {
 
-    private Cela[][] celas = new Cela[10][10];
-    private Button[][] botoes = new Button[10][10];
+    private int num = 10;
+    private boolean primeiraJogada = true;
+    private Cela[][] celas = new Cela[num][num];
+    private Button[][] botoes = new Button[num][num];
+    private int[][] matriz_ = new int[num][num];
+    private int[][] matriz2 = new int[num][num];
+    private TextView bombas;
+
+    int numBombas = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,47 +46,52 @@ public class JogoCampoMinado extends AppCompatActivity {
             return insets;
         });
 
-        LinearLayout tlGrid = findViewById(R.id.llGrid);
-        LayoutInflater inflater = getLayoutInflater();
+        LinearLayout tlGrid = findViewById(R.id.llGrid); // conecta com o TableLayer
+        LayoutInflater inflater = getLayoutInflater(); // cria esse negocio pro botão ser criado
+        bombas = findViewById(R.id.tVBombas);
 
-        criarMatrizCelas();
-
-
-        for (int i = 0; i < 10; i++) {
-            LinearLayout tableRow = new LinearLayout(this);
-            tableRow.setOrientation(LinearLayout.HORIZONTAL);
-            for (int j = 0; j < 10; j++) {
-                View bview = inflater.inflate(R.layout.item_cells, tableRow, false);
-                Button button = (Button) bview.findViewById(R.id.btCell);
+        for (int i = 0; i < num; i++) {
+            LinearLayout tableRow = new LinearLayout(this); // cria o tablerow
+            tableRow.setOrientation(LinearLayout.HORIZONTAL); // mexe na comfiguração do tablerow
+            for (int j = 0; j < num; j++) {
+                View bview = inflater.inflate(R.layout.item_cells, tableRow, false); // chama o botão do outro xml
+                Button button = (Button) bview.findViewById(R.id.btCell); // conecta com o botão do xml
                 //Button button = new Button(this);
                 button.setText("");
-                Cela cela = celas[i][j];
                 botoes[i][j] = button;
                 int a = i;
                 int b = j;
+
+                // função onclick
+
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if(!cela.getEstado()){
+                        if(primeiraJogada){
+                            primeiraJogada = false;
+                            criarMatrizCelas(a,b);// cria a matriz com os numeros
+                        }
+                        if(!celas[a][b].getEstado()){
                             mudarCelula(a,b);
                         }
                     }
                 });
-                tableRow.addView(bview);
+                tableRow.addView(bview); // adiciona o xml no tablerow
             }
-            tlGrid.addView(tableRow);
+            tlGrid.addView(tableRow);// adiciona o tablerow no tableLayout
         }
 
     }
 
     private void mudarCelula(int a, int b){
 
+        int num = this.num;
 
         if(celas[a][b].getValor()==-1){
             botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FF0000")));
             allLose();
         }
-        if(celas[a][b].getValor()==0) {
+        if(celas[a][b].getValor() == 0) {
             celas[a][b].setEstado(Boolean.TRUE);
             botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
             botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00FF00")));
@@ -88,10 +101,10 @@ public class JogoCampoMinado extends AppCompatActivity {
             if (b > 0)
                 if (!celas[a][b - 1].getEstado()&&celas[a][b-1].getValor()==0)
                     mudarCelula(a, b - 1);
-            if (a < 9)
+            if (a < num-1)
                 if (!celas[a + 1][b].getEstado()&&celas[a + 1][b].getValor()==0)
                     mudarCelula(a + 1, b);
-            if (b < 9)
+            if (b < num-1)
                 if (!celas[a][b + 1].getEstado()&&celas[a][b + 1].getValor()==0)
                     mudarCelula(a, b + 1);
         }else{
@@ -126,11 +139,9 @@ public class JogoCampoMinado extends AppCompatActivity {
     }
 
 
-    public void criarMatrizCelas(){
-        int num = 10;
+    public void criarMatrizCelas(int a, int b){
 
-        int[][] matriz_ = new int[num][num];
-        int[][] matriz2 = new int[num][num];
+        int num = this.num;
 
         Random random = new Random();
 
@@ -138,9 +149,12 @@ public class JogoCampoMinado extends AppCompatActivity {
         int cont = 15;
         for(int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
+
                 int numero_random = random.nextInt(100);
-                if(numero_random < 15 || ((99 <= cont+i*10+j) && (cont!=0))){
+
+                if((numero_random < 15 || (((num*num)-1 <= cont+i*10+j))) && (cont!=0)&& !(i==a && j==b)){
                     matriz_[i][j] = -1;
+                    numBombas++;
                     cont--;
                 }else{
                     matriz_[i][j] = 0;
@@ -156,30 +170,20 @@ public class JogoCampoMinado extends AppCompatActivity {
                 Cela cela = new Cela();
 
                 if(matriz_[i][j] != -1){
-                    if (i > 0 && j > 0)
-                        if (matriz_[i-1][j-1] != 0)
-                            soma++;
-                    if (i > 0)
-                        if(matriz_[i-1][j] != 0)
-                            soma++;
-                    if (i > 0 && j < num - 1)
-                        if( 0 != matriz_[i-1][j+1])
-                            soma++;
-                    if (j > 0)
-                        if( 0 != matriz_[i][j-1])
-                            soma++;
-                    if (j < num - 1)
-                        if( 0 != matriz_[i][j+1])
-                            soma++;
-                    if (i < num - 1 && j > 0)
-                        if( 0 != matriz_[i+1][j-1])
-                            soma++;
-                    if (i < num - 1)
-                        if( 0 != matriz_[i+1][j])
-                            soma++;
-                    if (i < num - 1 && j < num - 1)
-                        if( 0 != matriz_[i+1][j+1])
-                            soma++;
+
+                    int x1, x2, y1, y2;
+                    x1 = i > 0 ? i-1 : i;
+                    x2 = i < num -1 ? i+1 : i;
+                    y1 = j > 0 ? j-1 : j;
+                    y2 = j < num -1 ? j+1 : j;
+
+                    for(int x = x1; x <= x2; x++){
+                        for(int y = y1; y <= y2; y++){
+                            if((!((x==i)==(y==j))) && matriz_[x][y]==-1){
+                                soma++;
+                            }
+                        }
+                    }
                     matriz2[i][j] = soma;
                     soma = 0;
                 }else{
@@ -190,6 +194,7 @@ public class JogoCampoMinado extends AppCompatActivity {
                 celas[i][j] = cela;
             }
         }
+        bombas.setText(""+numBombas);
     }
 
     private void resetCells(){
@@ -209,5 +214,4 @@ public class JogoCampoMinado extends AppCompatActivity {
         resetCells();*/
         recreate();
     }
-
 }

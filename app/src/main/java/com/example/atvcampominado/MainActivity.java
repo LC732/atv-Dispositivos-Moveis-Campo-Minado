@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Por favor, insira um número válido", Toast.LENGTH_SHORT).show();
         }
 
+
         StringBuilder str_matriz = new StringBuilder();
 
         int[][] matriz_ = new int[num][num];
@@ -61,11 +62,14 @@ public class MainActivity extends AppCompatActivity {
 
         Random random = new Random();
 
+        int cont = (num*num)*15/100;
+
         for(int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
                 int numero_random = random.nextInt(100);
-                if(numero_random < 15){
+                if((numero_random < 20 || (((num*num)-1 <= cont+i*10+j))) && (cont!=0)){
                     matriz_[i][j] = -1;
+                    cont--;
                 }else{
                     matriz_[i][j] = 0;
                 }
@@ -74,27 +78,22 @@ public class MainActivity extends AppCompatActivity {
         int soma = 0;
         for(int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
-
                 if(matriz_[i][j] != -1){
 
-                    if (i > 0 && j > 0)
-                        soma += matriz_[i-1][j-1];
-                    if (i > 0)
-                        soma += matriz_[i-1][j];
-                    if (i > 0 && j < num - 1)
-                        soma += matriz_[i-1][j+1];
-                    if (j > 0)
-                        soma += matriz_[i][j-1];
-                    if (j < num - 1)
-                        soma += matriz_[i][j+1];
-                    if (i < num - 1 && j > 0)
-                        soma += matriz_[i+1][j-1];
-                    if (i < num - 1)
-                        soma += matriz_[i+1][j];
-                    if (i < num - 1 && j < num - 1)
-                        soma += matriz_[i+1][j+1];
+                    int x1, x2, y1, y2;
+                    x1 = i > 0 ? i-1 : i;
+                    x2 = i < num -1 ? i+1 : i;
+                    y1 = j > 0 ? j-1 : j;
+                    y2 = j < num -1 ? j+1 : j;
 
-                    matriz2[i][j] = soma*(-1);
+                    for(int x = x1; x <= x2; x++){
+                        for(int y = y1; y <= y2; y++){
+                            if((!((x==i)==(y==j))) && matriz_[x][y]==-1){
+                                soma++;
+                            }
+                        }
+                    }
+                    matriz2[i][j] = soma;
                     soma = 0;
                 }else{
                     matriz2[i][j] = -1;
