@@ -3,10 +3,12 @@ package com.example.atvcampominado;
 import android.content.DialogInterface;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -14,6 +16,7 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -31,6 +34,14 @@ public class JogoCampoMinado extends AppCompatActivity {
     private int[][] matriz_ = new int[num][num];
     private int[][] matriz2 = new int[num][num];
     private TextView bombas;
+
+    private int vitoria;
+
+    private enum Estado {
+        BOMBA, INTEROGACAO, REMOVER
+    }
+
+    Estado estadoAtual = Estado.REMOVER;
 
     int numBombas = 0;
 
@@ -51,9 +62,13 @@ public class JogoCampoMinado extends AppCompatActivity {
         bombas = findViewById(R.id.tVBombas);
 
         for (int i = 0; i < num; i++) {
+
             LinearLayout tableRow = new LinearLayout(this); // cria o tablerow
             tableRow.setOrientation(LinearLayout.HORIZONTAL); // mexe na comfiguração do tablerow
             for (int j = 0; j < num; j++) {
+
+                Cela cela = new Cela();
+
                 View bview = inflater.inflate(R.layout.item_cells, tableRow, false); // chama o botão do outro xml
                 Button button = (Button) bview.findViewById(R.id.btCell); // conecta com o botão do xml
                 //Button button = new Button(this);
@@ -63,60 +78,135 @@ public class JogoCampoMinado extends AppCompatActivity {
                 int b = j;
 
                 // função onclick
-
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if(primeiraJogada){
-                            primeiraJogada = false;
-                            criarMatrizCelas(a,b);// cria a matriz com os numeros
-                        }
-                        if(!celas[a][b].getEstado()){
-                            mudarCelula(a,b);
-                        }
+                        funcClick(a,b);
                     }
                 });
                 tableRow.addView(bview); // adiciona o xml no tablerow
+                celas[i][j] = cela;
             }
             tlGrid.addView(tableRow);// adiciona o tablerow no tableLayout
+
         }
 
     }
+    private void funcClick(int a, int b) {
 
-    private void mudarCelula(int a, int b){
+        switch (estadoAtual) {
+            case INTEROGACAO:
+                switch (celas[a][b].getEstado()) {
+                    case VAZIO:
+                        celas[a][b].setEstado(Cela.estadocell.INTER);
+                        //botoes[a][b].setCompoundDrawables(interogacao, null, null, null);
+                        botoes[a][b].setText("?");
+                        break;
+                    case INTER:
+                        celas[a][b].setEstado(Cela.estadocell.VAZIO);
+                        //botoes[a][b].setCompoundDrawables(null, null, null, null);
+                        botoes[a][b].setText("");
+                        break;
+                }
+                break;
+            case REMOVER:
+                if (primeiraJogada) {
+                    primeiraJogada = false;
+                    criarMatrizCelas(a, b);// cria a matriz com os numeros
+                }
+                if (celas[a][b].getEstado() == Cela.estadocell.VAZIO) {
+                    mudarCelulaRemover(a, b);
+                }
+                break;
+            case BOMBA:
+                switch (celas[a][b].getEstado()) {
+                    case VAZIO:
+                        botoes[a][b].setText("\uD83D\uDCA3");
+                        celas[a][b].setEstado(Cela.estadocell.BOMBA);
+                        break;
+                    case BOMBA:
+                        botoes[a][b].setText("");
+                        celas[a][b].setEstado(Cela.estadocell.VAZIO);
+                        break;
+                }
+                break;
+        }
+    }
+
+
+    private void mudarCelulaRemover(int a, int b) {
 
         int num = this.num;
 
-        if(celas[a][b].getValor()==-1){
-            botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FF0000")));
+        if (celas[a][b].getValor() == -1) {
             allLose();
-        }
-        if(celas[a][b].getValor() == 0) {
-            celas[a][b].setEstado(Boolean.TRUE);
-            botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
-            botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00FF00")));
+        } else if (celas[a][b].getValor() == 0) {
+            celas[a][b].setEstado(Cela.estadocell.CLICADO);
+            //botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
+            botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFB703")));
             if (a > 0)
-                if (!celas[a - 1][b].getEstado()&&celas[a - 1][b].getValor()==0)
-                    mudarCelula(a - 1, b);
+                if (celas[a - 1][b].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a - 1, b);
             if (b > 0)
-                if (!celas[a][b - 1].getEstado()&&celas[a][b-1].getValor()==0)
-                    mudarCelula(a, b - 1);
-            if (a < num-1)
-                if (!celas[a + 1][b].getEstado()&&celas[a + 1][b].getValor()==0)
-                    mudarCelula(a + 1, b);
-            if (b < num-1)
-                if (!celas[a][b + 1].getEstado()&&celas[a][b + 1].getValor()==0)
-                    mudarCelula(a, b + 1);
-        }else{
-            celas[a][b].setEstado(Boolean.TRUE);
+                if (celas[a][b - 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a, b - 1);
+            if (a < num - 1)
+                if (celas[a + 1][b].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a + 1, b);
+            if (b < num - 1)
+                if (celas[a][b + 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a, b + 1);
+            if (a > 0 && b > 0)
+                if (celas[a - 1][b - 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a - 1, b - 1);
+            if (a > 0 && b < num - 1)
+                if (celas[a - 1][b + 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a - 1, b + 1);
+            if (a < num - 1 && b > 0)
+                if (celas[a + 1][b - 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a + 1, b - 1);
+            if (a < num - 1 && b < num - 1)
+                if (celas[a + 1][b + 1].getEstado() == Cela.estadocell.VAZIO)
+                    mudarCelulaRemover(a + 1, b + 1);
+        } else {
+            celas[a][b].setEstado(Cela.estadocell.CLICADO);
             botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
+            botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFB703")));
+        }
+        if(celas[a][b].getValor() != -1)
+            vitoria++;
+        if(vitoria == 85)
+            allWin();
+    }
+
+    private void allWin(){
+        new AlertDialog.Builder(this)
+                .setTitle("Fim de Jogo") // Título do diálogo
+                .setMessage("Você ganhou!") // Mensagem do diálogo
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Ação quando o botão "OK" é clicado
+                        dialog.dismiss(); // Fechar o diálogo
+                    }
+                })
+                .show(); // Mostrar o diálogo
+
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (celas[i][j].getEstado() == Cela.estadocell.VAZIO && celas[i][j].getValor() == -1) {
+                    celas[i][j].setEstado(Cela.estadocell.CLICADO);
+                    botoes[i][j].setText(String.valueOf(celas[i][j].getValor()));
+                    botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FB8500")));
+                }
+            }
         }
     }
 
-    private void allLose(){
+    private void allLose() {
 
         new AlertDialog.Builder(this)
-                .setTitle("Game Over") // Título do diálogo
+                .setTitle("Fim de Jogo") // Título do diálogo
                 .setMessage("Você perdeu!") // Mensagem do diálogo
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
@@ -127,19 +217,19 @@ public class JogoCampoMinado extends AppCompatActivity {
                 })
                 .show(); // Mostrar o diálogo
 
-        for(int i = 0; i < 10; i++){
-            for(int j = 0; j < 10; j++){
-                if(!celas[i][j].getEstado()&&celas[i][j].getValor()==-1){
-                    celas[i][j].setEstado(Boolean.TRUE);
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (celas[i][j].getEstado() == Cela.estadocell.VAZIO && celas[i][j].getValor() == -1) {
+                    celas[i][j].setEstado(Cela.estadocell.CLICADO);
                     botoes[i][j].setText(String.valueOf(celas[i][j].getValor()));
-                    botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FF0000")));
+                    botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FB8500")));
                 }
             }
         }
     }
 
 
-    public void criarMatrizCelas(int a, int b){
+    public void criarMatrizCelas(int a, int b) {
 
         int num = this.num;
 
@@ -147,16 +237,16 @@ public class JogoCampoMinado extends AppCompatActivity {
 
         // cria a matriz com -1 e 0
         int cont = 15;
-        for(int i = 0; i < num; i++) {
+        for (int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
 
                 int numero_random = random.nextInt(100);
 
-                if((numero_random < 15 || (((num*num)-1 <= cont+i*10+j))) && (cont!=0)&& !(i==a && j==b)){
+                if ((numero_random < 15 || (((num * num) - 1 <= cont + i * 10 + j))) && (cont != 0) && !(i == a && j == b)) {
                     matriz_[i][j] = -1;
                     numBombas++;
                     cont--;
-                }else{
+                } else {
                     matriz_[i][j] = 0;
                 }
             }
@@ -165,43 +255,44 @@ public class JogoCampoMinado extends AppCompatActivity {
 
         //crai a matriz com as somas
 
-        for(int i = 0; i < num; i++) {
+        for (int i = 0; i < num; i++) {
             for (int j = 0; j < num; j++) {
                 Cela cela = new Cela();
 
-                if(matriz_[i][j] != -1){
+                if (matriz_[i][j] != -1) {
 
                     int x1, x2, y1, y2;
-                    x1 = i > 0 ? i-1 : i;
-                    x2 = i < num -1 ? i+1 : i;
-                    y1 = j > 0 ? j-1 : j;
-                    y2 = j < num -1 ? j+1 : j;
+                    x1 = i > 0 ? i - 1 : i;
+                    x2 = i < num - 1 ? i + 1 : i;
+                    y1 = j > 0 ? j - 1 : j;
+                    y2 = j < num - 1 ? j + 1 : j;
+                    soma = 0;
 
-                    for(int x = x1; x <= x2; x++){
-                        for(int y = y1; y <= y2; y++){
-                            if((!((x==i)==(y==j))) && matriz_[x][y]==-1){
+                    for (int x = x1; x <= x2; x++) {
+                        for (int y = y1; y <= y2; y++) {
+                            if ((!((x == i) && (y == j))) && matriz_[x][y] == -1) {
                                 soma++;
                             }
                         }
                     }
                     matriz2[i][j] = soma;
-                    soma = 0;
-                }else{
+                } else {
                     matriz2[i][j] = -1;
                 }
-                cela.setEstado(Boolean.FALSE);
+                cela.setEstado(Cela.estadocell.VAZIO);
                 cela.setValor(matriz2[i][j]);
                 celas[i][j] = cela;
+                botoes[i][j].setText("");
             }
         }
-        bombas.setText(""+numBombas);
+        bombas.setText("Bombas:" + numBombas);
     }
 
-    private void resetCells(){
-        for(int i = 0; i < 10; i++) {
+    private void resetCells() {
+        for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
 
-                celas[i][j].setEstado(Boolean.FALSE );
+                celas[i][j].setEstado(Cela.estadocell.VAZIO);
                 botoes[i][j].setText(String.valueOf(""));
 
                 botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#70FFF3")));
@@ -209,9 +300,33 @@ public class JogoCampoMinado extends AppCompatActivity {
         }
     }
 
-    public void entrarNoJogo(@NonNull View view){
+    public void entrarNoJogo(@NonNull View view) {
         /*criarMatrizCelas();
         resetCells();*/
         recreate();
     }
+
+    public void mudarTipoDeClick(View view) {
+        ImageButton botao = (ImageButton) view;
+
+        switch (estadoAtual) {
+            case BOMBA:
+                botao.setImageResource(R.drawable.nullimg);
+                estadoAtual = Estado.REMOVER;
+                break;
+            case REMOVER:
+                botao.setImageResource(R.drawable.interrogacao);
+                estadoAtual = Estado.INTEROGACAO;
+                break;
+            case INTEROGACAO:
+                botao.setImageResource(R.drawable.bomba);
+                estadoAtual = Estado.BOMBA;
+                break;
+            default:
+                break;
+        }
+
+    }
+
+
 }

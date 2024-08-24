@@ -6,15 +6,18 @@ public class Cela {
 
     private int valor;
     private ArrayList<Cela> celas_vizinhas;
-    private Boolean estado;
-
+    public enum estadocell{
+        BOMBA, VAZIO, INTER, CLICADO
+    };
+    private estadocell estadoDaCelula;
     public Cela(){
-
+        this.estadoDaCelula = estadocell.VAZIO;
     }
 
     public Cela(int valor, ArrayList<Cela> celas) {
         this.valor = valor;
         this.celas_vizinhas = celas;
+
     }
 
     public int getValor() {
@@ -33,11 +36,11 @@ public class Cela {
         this.celas_vizinhas = celas_vizinhas;
     }
 
-    public Boolean getEstado() {
-        return estado;
+    public estadocell getEstado() {
+        return estadoDaCelula;
     }
 
-    public void setEstado(Boolean estado) {
-        this.estado = estado;
+    public void setEstado(estadocell estado) {
+        this.estadoDaCelula = estado;
     }
 }
