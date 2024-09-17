@@ -1,49 +1,69 @@
 package com.example.atvcampominado;
 
+import android.content.ContentValues;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.atvcampominado.BDsqlite.Contrato;
+import com.example.atvcampominado.BDsqlite.DbHelper;
 import com.example.atvcampominado.Objetos.Cela;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.time.temporal.ValueRange;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class JogoCampoMinado extends AppCompatActivity {
 
-    private int num = 10;
+    private int numx;
+    private int numy;
+    private int numb;
+    private int numBandeiras = 0;
+    private int numClicks = 0;
     private boolean primeiraJogada = true;
-    private Cela[][] celas = new Cela[num][num];
-    private Button[][] botoes = new Button[num][num];
-    private int[][] matriz_ = new int[num][num];
-    private int[][] matriz2 = new int[num][num];
-    private TextView bombas;
-
+    private Cela[][] celas;
+    private Button[][] botoes;
+    private int[][] matriz_;
+    private int[][] matriz2;
+    private LinearLayout tlGrid;
+    private LinearLayout[] lLLinhas;
+    private TextView bandeiras;
+    private TextView clicks;
     private int vitoria;
+    private Vibrator vibrador; // o nome ficou estranho :/
+    private FloatingActionButton ftbReset;
+    private MediaPlayer playWin, playLose;
+    private TextView tvTimer;
+    private Timer timer;
+    private TimerTask timerTask;
+    private double time = 0.0;
+    private TextView hora;
+    private TextView dia;
 
-    private enum Estado {
-        BOMBA, INTEROGACAO, REMOVER
-    }
-
-    Estado estadoAtual = Estado.REMOVER;
-
-    int numBombas = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,21 +77,49 @@ public class JogoCampoMinado extends AppCompatActivity {
             return insets;
         });
 
-        LinearLayout tlGrid = findViewById(R.id.llGrid); // conecta com o TableLayer
-        LayoutInflater inflater = getLayoutInflater(); // cria esse negocio pro botão ser criado
-        bombas = findViewById(R.id.tVBombas);
 
-        for (int i = 0; i < num; i++) {
+        setNivel();
+        conector();
+        criarBotoes();
+        conferirOrientacao();
+        atualizarText();
+        timeAndDay();
+
+    }
+
+    private void conector() {
+        playWin = MediaPlayer.create(this, R.raw.win2);
+        playLose = MediaPlayer.create(this, R.raw.lose2);
+        celas = new Cela[numx][numy];
+        botoes = new Button[numx][numy];
+        matriz_ = new int[numx][numy];
+        matriz2 = new int[numx][numy];
+        lLLinhas = new LinearLayout[numx];
+        tlGrid = findViewById(R.id.llGrid); // conecta com o TableLayer
+        bandeiras = findViewById(R.id.tvNBandeiras);
+        clicks = findViewById(R.id.tvNClicks);
+        vibrador = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        ftbReset = findViewById(R.id.flbutReset);
+        tvTimer = findViewById(R.id.tvTimer);
+        timer = new Timer();
+        hora = findViewById(R.id.tvHora);
+        dia = findViewById(R.id.tvDia);
+    }
+
+    private void criarBotoes() {
+        LayoutInflater inflater = getLayoutInflater(); // cria esse negocio pro botão ser criado
+
+        for (int i = 0; i < numx; i++) {
 
             LinearLayout tableRow = new LinearLayout(this); // cria o tablerow
-            tableRow.setOrientation(LinearLayout.HORIZONTAL); // mexe na comfiguração do tablerow
-            for (int j = 0; j < num; j++) {
+            lLLinhas[numx - 1 - i] = tableRow;
 
+            for (int j = 0; j < numy; j++) {
                 Cela cela = new Cela();
 
                 View bview = inflater.inflate(R.layout.item_cells, tableRow, false); // chama o botão do outro xml
-                Button button = (Button) bview.findViewById(R.id.btCell); // conecta com o botão do xml
-                //Button button = new Button(this);
+                Button button = bview.findViewById(R.id.btCell); // conecta com o botão do xml
+
                 button.setText("");
                 botoes[i][j] = button;
                 int a = i;
@@ -81,68 +129,105 @@ public class JogoCampoMinado extends AppCompatActivity {
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        funcClick(a,b);
+                        funcClick(a, b);
                     }
                 });
+
+                button.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        funcLongClick(a, b);
+                        return true;
+                    }
+                });
+
                 tableRow.addView(bview); // adiciona o xml no tablerow
                 celas[i][j] = cela;
             }
             tlGrid.addView(tableRow);// adiciona o tablerow no tableLayout
 
         }
-
     }
-    private void funcClick(int a, int b) {
 
-        switch (estadoAtual) {
-            case INTEROGACAO:
-                switch (celas[a][b].getEstado()) {
-                    case VAZIO:
-                        celas[a][b].setEstado(Cela.estadocell.INTER);
-                        //botoes[a][b].setCompoundDrawables(interogacao, null, null, null);
-                        botoes[a][b].setText("?");
-                        break;
-                    case INTER:
-                        celas[a][b].setEstado(Cela.estadocell.VAZIO);
-                        //botoes[a][b].setCompoundDrawables(null, null, null, null);
-                        botoes[a][b].setText("");
-                        break;
-                }
+    private void setNivel() {
+        Intent intent = getIntent();
+        MainActivity.Nivel nivel = MainActivity.Nivel.values()[intent.getIntExtra("Nivel", 1)];
+
+        switch (nivel) {
+            case FACIL:
+                numy = 9;
+                numx = 9;
+                numb = 10;
                 break;
-            case REMOVER:
-                if (primeiraJogada) {
-                    primeiraJogada = false;
-                    criarMatrizCelas(a, b);// cria a matriz com os numeros
-                }
-                if (celas[a][b].getEstado() == Cela.estadocell.VAZIO) {
-                    mudarCelulaRemover(a, b);
-                }
+            case MEDIO:
+                numy = 11;
+                numx = 19;
+                numb = 30;
                 break;
-            case BOMBA:
-                switch (celas[a][b].getEstado()) {
-                    case VAZIO:
-                        botoes[a][b].setText("\uD83D\uDCA3");
-                        celas[a][b].setEstado(Cela.estadocell.BOMBA);
-                        break;
-                    case BOMBA:
-                        botoes[a][b].setText("");
-                        celas[a][b].setEstado(Cela.estadocell.VAZIO);
-                        break;
-                }
+            case DIFICIL:
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                numy = 9;
+                numx = 23;
+                numb = 50;
                 break;
+            case PERSONALIZADO:
+                numy = intent.getIntExtra("colunas", -1);
+                numx = intent.getIntExtra("linhas", -1);
+                numb = intent.getIntExtra("bombas", -1);
+                break;
+        }
+    }
+
+    private void funcClick(int a, int b) {
+        if (celas[a][b].getEstado() == Cela.estadocell.VAZIO) {
+            if (primeiraJogada) {
+                primeiraJogada = false;
+                if (numb >= numy * numx) numb = (numx * numy) - 1;
+                criarMatrizCelas(a, b);// cria a matriz com os numeros
+                mudarCelulaRemover(a, b);
+                numClicks = 1;
+                atualizarText();
+                startTimer();
+            } else {
+                mudarCelulaRemover(a, b);
+                numClicks++;
+                atualizarText();
+            }
+        }
+        atualizarText();
+    }
+
+
+    private void funcLongClick(int a, int b) {
+        switch (celas[a][b].getEstado()) {
+            case VAZIO:
+                vibrador.vibrate(100);
+                celas[a][b].setEstado(Cela.estadocell.INTER);
+                botoes[a][b].setText("\uD83D\uDEA9");
+                numBandeiras++;
+                atualizarText();
+                break;
+            case INTER:
+                vibrador.vibrate(100);
+                celas[a][b].setEstado(Cela.estadocell.VAZIO);
+                botoes[a][b].setText("");
+                numBandeiras--;
+                atualizarText();
+                break;
+
         }
     }
 
 
     private void mudarCelulaRemover(int a, int b) {
 
-        int num = this.num;
+        int numx = this.numx;
+        int numy = this.numy;
 
         if (celas[a][b].getValor() == -1) {
             allLose();
         } else if (celas[a][b].getValor() == 0) {
             celas[a][b].setEstado(Cela.estadocell.CLICADO);
-            //botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
             botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFB703")));
             if (a > 0)
                 if (celas[a - 1][b].getEstado() == Cela.estadocell.VAZIO)
@@ -150,22 +235,22 @@ public class JogoCampoMinado extends AppCompatActivity {
             if (b > 0)
                 if (celas[a][b - 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a, b - 1);
-            if (a < num - 1)
+            if (a < numx - 1)
                 if (celas[a + 1][b].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a + 1, b);
-            if (b < num - 1)
+            if (b < numy - 1)
                 if (celas[a][b + 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a, b + 1);
             if (a > 0 && b > 0)
                 if (celas[a - 1][b - 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a - 1, b - 1);
-            if (a > 0 && b < num - 1)
+            if (a > 0 && b < numy - 1)
                 if (celas[a - 1][b + 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a - 1, b + 1);
-            if (a < num - 1 && b > 0)
+            if (a < numx - 1 && b > 0)
                 if (celas[a + 1][b - 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a + 1, b - 1);
-            if (a < num - 1 && b < num - 1)
+            if (a < numx - 1 && b < numy - 1)
                 if (celas[a + 1][b + 1].getEstado() == Cela.estadocell.VAZIO)
                     mudarCelulaRemover(a + 1, b + 1);
         } else {
@@ -173,37 +258,50 @@ public class JogoCampoMinado extends AppCompatActivity {
             botoes[a][b].setText(String.valueOf(celas[a][b].getValor()));
             botoes[a][b].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FFB703")));
         }
-        if(celas[a][b].getValor() != -1)
+        if (celas[a][b].getValor() != -1)
             vitoria++;
-        if(vitoria == 85)
+        if (vitoria == numx * numy - numb)
             allWin();
     }
 
-    private void allWin(){
+    private void allWin() {
+
+        playWin.start();
+        if(timerTask != null){
+            timerTask.cancel();
+        }
+        adicionarVitoria();
+
         new AlertDialog.Builder(this)
                 .setTitle("Fim de Jogo") // Título do diálogo
                 .setMessage("Você ganhou!") // Mensagem do diálogo
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        // Ação quando o botão "OK" é clicado
                         dialog.dismiss(); // Fechar o diálogo
                     }
                 })
                 .show(); // Mostrar o diálogo
+        ftbReset.setVisibility(View.VISIBLE);
+        for (int i = 0; i < numx; i++) {
+            for (int j = 0; j < numy; j++) {
 
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
                 if (celas[i][j].getEstado() == Cela.estadocell.VAZIO && celas[i][j].getValor() == -1) {
-                    celas[i][j].setEstado(Cela.estadocell.CLICADO);
+
                     botoes[i][j].setText(String.valueOf(celas[i][j].getValor()));
                     botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FB8500")));
                 }
+                celas[i][j].setEstado(Cela.estadocell.CLICADO);
             }
         }
     }
 
     private void allLose() {
+
+        playLose.start();
+        if(timerTask != null){
+            timerTask.cancel();
+        }
 
         new AlertDialog.Builder(this)
                 .setTitle("Fim de Jogo") // Título do diálogo
@@ -212,18 +310,21 @@ public class JogoCampoMinado extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Ação quando o botão "OK" é clicado
+
                         dialog.dismiss(); // Fechar o diálogo
                     }
                 })
                 .show(); // Mostrar o diálogo
+        ftbReset.setVisibility(View.VISIBLE);
+        for (int i = 0; i < numx; i++) {
+            for (int j = 0; j < numy; j++) {
 
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
                 if (celas[i][j].getEstado() == Cela.estadocell.VAZIO && celas[i][j].getValor() == -1) {
-                    celas[i][j].setEstado(Cela.estadocell.CLICADO);
-                    botoes[i][j].setText(String.valueOf(celas[i][j].getValor()));
+
+                    botoes[i][j].setText("\uD83D\uDCA3");
                     botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FB8500")));
                 }
+                celas[i][j].setEstado(Cela.estadocell.CLICADO);
             }
         }
     }
@@ -231,20 +332,20 @@ public class JogoCampoMinado extends AppCompatActivity {
 
     public void criarMatrizCelas(int a, int b) {
 
-        int num = this.num;
+        int numx = this.numx;
+        int numy = this.numy;
 
         Random random = new Random();
 
         // cria a matriz com -1 e 0
-        int cont = 15;
-        for (int i = 0; i < num; i++) {
-            for (int j = 0; j < num; j++) {
+        int cont = numb;
+        for (int i = 0; i < numx; i++) {
+            for (int j = 0; j < numy; j++) {
 
-                int numero_random = random.nextInt(100);
+                int numero_random = random.nextInt(numx * numy);
 
-                if ((numero_random < 15 || (((num * num) - 1 <= cont + i * 10 + j))) && (cont != 0) && !(i == a && j == b)) {
+                if ((numero_random < numb || (((numx * numy) - 1 <= cont + i * numy + j))) && (cont != 0) && !(i == a && j == b)) {
                     matriz_[i][j] = -1;
-                    numBombas++;
                     cont--;
                 } else {
                     matriz_[i][j] = 0;
@@ -255,17 +356,17 @@ public class JogoCampoMinado extends AppCompatActivity {
 
         //crai a matriz com as somas
 
-        for (int i = 0; i < num; i++) {
-            for (int j = 0; j < num; j++) {
+        for (int i = 0; i < numx; i++) {
+            for (int j = 0; j < numy; j++) {
                 Cela cela = new Cela();
 
                 if (matriz_[i][j] != -1) {
 
                     int x1, x2, y1, y2;
                     x1 = i > 0 ? i - 1 : i;
-                    x2 = i < num - 1 ? i + 1 : i;
+                    x2 = i < numx - 1 ? i + 1 : i;
                     y1 = j > 0 ? j - 1 : j;
-                    y2 = j < num - 1 ? j + 1 : j;
+                    y2 = j < numy - 1 ? j + 1 : j;
                     soma = 0;
 
                     for (int x = x1; x <= x2; x++) {
@@ -285,47 +386,131 @@ public class JogoCampoMinado extends AppCompatActivity {
                 botoes[i][j].setText("");
             }
         }
-        bombas.setText("Bombas:" + numBombas);
     }
 
-    private void resetCells() {
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
+    private void atualizarText(){
+        bandeiras.setText(String.format("Bandeiras: %d", numBandeiras));
+        clicks.setText(String.format("Clicks: %d",numClicks));
+    }
 
-                celas[i][j].setEstado(Cela.estadocell.VAZIO);
-                botoes[i][j].setText(String.valueOf(""));
 
-                botoes[i][j].setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#70FFF3")));
+    public void recrearJogo(View v) {
+        recreate();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            tlGrid.setOrientation(LinearLayout.HORIZONTAL);
+            for (LinearLayout x : lLLinhas) {
+                x.setOrientation(LinearLayout.VERTICAL);
+                x.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            }
+
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            tlGrid.setOrientation(LinearLayout.VERTICAL);
+            for (LinearLayout x : lLLinhas) {
+                x.setOrientation(LinearLayout.HORIZONTAL);
+                x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
             }
         }
     }
 
-    public void entrarNoJogo(@NonNull View view) {
-        /*criarMatrizCelas();
-        resetCells();*/
-        recreate();
+    private void conferirOrientacao() {
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            tlGrid.setOrientation(LinearLayout.HORIZONTAL);
+            for (LinearLayout x : lLLinhas) {
+                x.setOrientation(LinearLayout.VERTICAL);
+                x.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            }
+
+        } else if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            tlGrid.setOrientation(LinearLayout.VERTICAL);
+            for (LinearLayout x : lLLinhas) {
+                x.setOrientation(LinearLayout.HORIZONTAL);
+                x.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            }
+        }
     }
 
-    public void mudarTipoDeClick(View view) {
-        ImageButton botao = (ImageButton) view;
+    private void startTimer(){
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        time++;
+                        tvTimer.setText(getTimerTick());
+                    }
+                });
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 0, 1000);
+    }
 
-        switch (estadoAtual) {
-            case BOMBA:
-                botao.setImageResource(R.drawable.nullimg);
-                estadoAtual = Estado.REMOVER;
-                break;
-            case REMOVER:
-                botao.setImageResource(R.drawable.interrogacao);
-                estadoAtual = Estado.INTEROGACAO;
-                break;
-            case INTEROGACAO:
-                botao.setImageResource(R.drawable.bomba);
-                estadoAtual = Estado.BOMBA;
-                break;
-            default:
-                break;
+    private String getTimerTick() {
+        int arredondar =(int) Math.round(time);
+        int seg = ((arredondar % 86400) % 3600) % 60;
+        int min = ((arredondar % 86400) % 3600) / 60;
+        return formatarTime(seg, min);
+    }
+
+    private String formatarTime(int seg, int min){
+        return String.format("%02d:%02d", min, seg);
+    }
+
+    private void timeAndDay(){
+
+        TimerTask ttData = new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    final Calendar cal = Calendar.getInstance();
+                    @Override
+                    public void run() {
+                        hora.setText(String.format("Hora: %02d:%02d:%02d", cal.get(Calendar.HOUR), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND)));
+                        dia.setText(String.format("Data: %02d/%02d/%04d", cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH), cal.get(Calendar.YEAR)));
+                    }
+                });
+            }
+        };
+        timer.scheduleAtFixedRate(ttData, 0, 1000);
+    }
+
+    private void adicionarVitoria(){
+        DbHelper dbHelper = new DbHelper(this);
+        SQLiteDatabase db = null;
+
+        try {
+            db = dbHelper.getWritableDatabase();
+
+            ContentValues valores = new ContentValues();
+            valores.put(Contrato.Colunas.TABLE_CLICKS, String.valueOf(numClicks));
+            valores.put(Contrato.Colunas.TABLE_BANDEIRAS, String.valueOf(numBandeiras));
+            valores.put(Contrato.Colunas.TABLE_TEMPO, tvTimer.getText().toString());
+            valores.put(Contrato.Colunas.TABLE_DATA, dia.getText().toString());
+            valores.put(Contrato.Colunas.TABLE_HORA, hora.getText().toString());
+
+            long newRowId = db.insert(Contrato.Colunas.TABLE_NAME, null, valores);
+
+            if (newRowId == -1) {
+                // Se o ID da nova linha for -1, a inserção falhou
+                Toast.makeText(this, "Erro ao adicionar vitória.", Toast.LENGTH_SHORT).show();
+            } else {
+                // A inserção foi bem-sucedida
+                Toast.makeText(this, "Vitória adicionada com sucesso!", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            // Captura qualquer exceção que ocorra durante o processo
+            Toast.makeText(this, "Erro ao adicionar vitória: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        } finally {
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
-
     }
 
 

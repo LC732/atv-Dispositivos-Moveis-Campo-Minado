@@ -7,74 +7,107 @@
     android:layout_height="match_parent"
     android:background="#023047"
     android:backgroundTint="#023047"
-    android:paddingLeft="24dp"
-    android:paddingTop="24dp"
+    android:padding="0dp"
+    android:paddingStart="24dp"
+    android:paddingLeft="12dp"
+    android:paddingTop="0dp"
     android:paddingEnd="24dp"
-    android:paddingBottom="24dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="0dp"
     tools:context=".JogoCampoMinado">
 
     <TextView
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
         android:fontFamily="monospace"
         android:text="Campo minado"
         android:textColor="#8ECAE6"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="spread" />
-
-    <Button
-        android:id="@+id/button4"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
-        android:backgroundTint="#8ECAE6"
-        android:onClick="entrarNoJogo"
-        android:text="Tentar novamente"
-        android:textColor="#023047"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
         android:id="@+id/llGrid"
         android:layout_width="wrap_content"
-        android:layout_height="366dp"
-        android:layout_margin="0dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/button4"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView2"
-        app:layout_constraintVertical_bias="0.496" />
-
-    <TextView
-        android:id="@+id/tVBombas"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView2" />
 
-    <ImageButton
-        android:id="@+id/imbEstado"
-        android:layout_width="65dp"
-        android:layout_height="65dp"
-        android:onClick="mudarTipoDeClick"
-        app:layout_constraintBottom_toTopOf="@+id/button4"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+    <TextView
+        android:id="@+id/tvNBandeiras"
+        android:layout_width="97dp"
+        android:layout_height="23dp"
+        android:layout_marginStart="16dp"
+        android:text="num bandeiras"
+        android:textColor="#8ECAE6"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llGrid" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/flbutReset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="36dp"
+        android:clickable="true"
+        android:onClick="recrearJogo"
+        android:visibility="invisible"
+        app:backgroundTint="#8ECAE6"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:maxImageSize="56dp"
+        app:srcCompat="@android:drawable/stat_notify_sync"
+        app:tint="#023047" />
+
+    <TextView
+        android:id="@+id/tvNClicks"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="num Clicks"
+        android:textColor="#8ECAE6"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="@+id/tvNBandeiras"
+        app:layout_constraintTop_toBottomOf="@+id/tvNBandeiras" />
+
+    <TextView
+        android:id="@+id/tvTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textColor="#8ECAE6"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="@+id/tvNClicks"
+        app:layout_constraintTop_toBottomOf="@+id/tvNClicks" />
+
+    <TextView
+        android:id="@+id/tvDia"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Data: 00/00/0000"
+        android:textAlignment="viewEnd"
+        android:textColor="#8ECAE6"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@+id/tvHora"
+        app:layout_constraintTop_toBottomOf="@+id/tvHora" />
+
+    <TextView
+        android:id="@+id/tvHora"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="Hora:00:00:00"
+        android:textAlignment="viewEnd"
+        android:textColor="#8ECAE6"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

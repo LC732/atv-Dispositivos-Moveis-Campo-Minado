@@ -1,10 +1,13 @@
 package com.example.atvcampominado;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -14,18 +17,17 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import java.util.Arrays;
-import java.util.Random;
-
 public class MainActivity extends AppCompatActivity {
+    Intent intent;
 
-    private TextView matriz;
-    private EditText resultado;
+    public enum Nivel {
+        FACIL, MEDIO, DIFICIL, PERSONALIZADO
+    }
+    private Nivel nivel = Nivel.MEDIO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -34,88 +36,93 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-        matriz = findViewById(R.id.tVMatriz);
-        resultado = findViewById(R.id.eTNumber);
+
+        intent = new Intent(MainActivity.this, JogoCampoMinado.class);
+
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        findViewById(R.id.radBFacil).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                nivel = Nivel.FACIL;
+            }
+        });
+        findViewById(R.id.radBMedio).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                nivel = Nivel.MEDIO;
+            }
+        });
+        findViewById(R.id.radBDificil).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                nivel = Nivel.DIFICIL;
+            }
+        });
+        findViewById(R.id.radBPersonalisado).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                nivel = Nivel.PERSONALIZADO;
+            }
+        });
+
+    }
+    @Override
+    public void onConfigurationChanged (Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Toast.makeText(this, "Rodow", Toast.LENGTH_SHORT).show();
     }
 
-    public void criarMatriz(@NonNull View view){
-        int num = 0;
-        String num_str = "";
-        try {
-            num_str = resultado.getText().toString();
-            if(!num_str.isEmpty()) {
-                try {
-                    num = Integer.parseInt(num_str);
-                }catch (NumberFormatException e){
-                    Toast.makeText(this, "Por favor, insira um número válido", Toast.LENGTH_SHORT).show();
-                }
-            }
-        }catch (NumberFormatException e){
-            Toast.makeText(this, "Por favor, insira um número válido", Toast.LENGTH_SHORT).show();
-        }
-
-
-        StringBuilder str_matriz = new StringBuilder();
-
-        int[][] matriz_ = new int[num][num];
-        int[][] matriz2 = new int[num][num];
-
-        Random random = new Random();
-
-        int cont = (num*num)*15/100;
-
-        for(int i = 0; i < num; i++) {
-            for (int j = 0; j < num; j++) {
-                int numero_random = random.nextInt(100);
-                if((numero_random < 20 || (((num*num)-1 <= cont+i*10+j))) && (cont!=0)){
-                    matriz_[i][j] = -1;
-                    cont--;
-                }else{
-                    matriz_[i][j] = 0;
-                }
-            }
-        }
-        int soma = 0;
-        for(int i = 0; i < num; i++) {
-            for (int j = 0; j < num; j++) {
-                if(matriz_[i][j] != -1){
-
-                    int x1, x2, y1, y2;
-                    x1 = i > 0 ? i-1 : i;
-                    x2 = i < num -1 ? i+1 : i;
-                    y1 = j > 0 ? j-1 : j;
-                    y2 = j < num -1 ? j+1 : j;
-
-                    for(int x = x1; x <= x2; x++){
-                        for(int y = y1; y <= y2; y++){
-                            if((!((x==i)==(y==j))) && matriz_[x][y]==-1){
-                                soma++;
-                            }
-                        }
-                    }
-                    matriz2[i][j] = soma;
-                    soma = 0;
-                }else{
-                    matriz2[i][j] = -1;
-                }
-            }
-        }
-        for(int i = 0; i < num; i++) {
-            for (int j = 0; j < num; j++) {
-                str_matriz.append(" ");
-                if (j < num - 1 && matriz2[i][j] != -1) {
-                    str_matriz.append(" ");
-                }
-                str_matriz.append(matriz2[i][j]);
-            }
-            str_matriz.append("\n");
-        }
-        matriz.setText(str_matriz.toString());
-    }
 
     public void entrarNoJogo(@NonNull View view){
-        Intent intent = new Intent(MainActivity.this, JogoCampoMinado.class);
-        startActivity(intent);
+        if(nivel != null){
+            intent.putExtra("Nivel", nivel.ordinal());
+            if(nivel == Nivel.PERSONALIZADO){
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                final View dialogView = getLayoutInflater().inflate(R.layout.dialogo_personalizado, null);
+                builder.setView(dialogView);
+
+                final EditText tamColuna = dialogView.findViewById(R.id.numCol);
+                final EditText tamLinha = dialogView.findViewById(R.id.numLinhas);
+                final EditText tamBomba = dialogView.findViewById(R.id.numBomb);
+
+                builder.setTitle("Tamanho Personalizado")
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                String scol = tamColuna.getText().toString();
+                                String slin = tamLinha.getText().toString();
+                                String sbom = tamBomba.getText().toString();
+
+                                if(!scol.isEmpty() && !slin.isEmpty()){
+                                    int col = Integer.parseInt(scol);
+                                    int lin = Integer.parseInt(slin);
+                                    int bom = Integer.parseInt(sbom);
+                                    intent.putExtra("colunas", col);
+                                    intent.putExtra("linhas", lin);
+                                    intent.putExtra("bombas", bom);
+                                    startActivity(intent);
+                                }else{
+                                    Toast.makeText(MainActivity.this, "Adicione numeros validos", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancel", null);
+
+                // Exibe o Dialog
+                builder.create().show();
+            }else {
+                startActivity(intent);
+            }
+        }else{
+            Toast.makeText(this, "Escolha um modo", Toast.LENGTH_SHORT).show();
+        }
     }
+
+    public void entrarNoRank(View v){
+        Intent rank = new Intent(MainActivity.this, Ranque.class);
+        startActivity(rank);
+    }
+
 
 }

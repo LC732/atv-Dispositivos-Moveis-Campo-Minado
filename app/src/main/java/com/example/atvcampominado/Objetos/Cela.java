@@ -8,7 +8,7 @@ public class Cela {
     private ArrayList<Cela> celas_vizinhas;
     public enum estadocell{
         BOMBA, VAZIO, INTER, CLICADO
-    };
+    }
     private estadocell estadoDaCelula;
     public Cela(){
         this.estadoDaCelula = estadocell.VAZIO;
